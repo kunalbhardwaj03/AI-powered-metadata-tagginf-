@@ -7,12 +7,30 @@ import re
 app = Flask(__name__)
 
 # Load a small English model for NLP processing
+# Load a small English model for NLP processing
 try:
-    nlp = spacy.load("en_core_web_sm")
+    import en_core_web_sm
+    nlp = en_core_web_sm.load()
 except Exception:
-    # Fallback to a blank model if not pre-installed, to ensure it works directly
-    nlp = spacy.blank("en")
-    nlp.add_pipe("ner", source=spacy.load("en_core_web_sm") if "en_core_web_sm" in spacy.util.get_installed_models() else spacy.blank("en"))
+    class BlankNLP:
+        def __init__(self): pass
+        def __call__(self, text): return BlankDoc(text)
+    class BlankDoc:
+        def __init__(self, text):
+            self.text = text
+            self.ents = []
+            self.sents = [BlankSent(text)]
+            self.tokens = text.split()
+        def __iter__(self):
+            return iter([BlankToken(t) for t in self.tokens])
+    class BlankSent:
+        def __init__(self, text): self.text = text
+    class BlankToken:
+        def __init__(self, text):
+            self.text = text
+            self.is_stop = False
+            self.is_punct = False
+    nlp = BlankNLP()
 
 def extract_metadata(text):
     if not text.strip():
